@@ -2,12 +2,12 @@
 Helper class to simplify common read-only BigQuery tasks.
 """
 
-__version__ = '0.1.0'
-
 
 import pandas as pd
 
+from google.api_core.exceptions import BadGateway
 from google.cloud import bigquery
+from sys import getsizeof
 
 
 class BigQueryHelper(object):
@@ -20,6 +20,7 @@ class BigQueryHelper(object):
     """
 
     BYTES_PER_GB = 2**30
+    BYTES_PER_KB = 1024
 
     def __init__(self, active_project, dataset_name):
         self.project_name = active_project
@@ -74,14 +75,23 @@ class BigQueryHelper(object):
         """
         Take a SQL query & return a pandas dataframe
         """
-        query_job = self.client.query(query)
+        try:
+            query_job = self.client.query(query)
+        except BadGateway:
+            print(f"""
+            Error: BadGateway 502. Either your query string is too large or there was a server error.
+            If this error persists try reducing the size of your query string **well** below 256kb.
+            You may need to reduce it below 40 kb in practice.
+            It is currently {getsizeof(query)/self.BYTES_PER_KB} kb.
+            """)
+            raise
         rows = list(query_job.result(timeout=30))
         return pd.DataFrame(
             data=[list(x.values()) for x in rows], columns=list(rows[0].keys()))
 
     def query_to_pandas_safe(self, query, max_gb_scanned=1):
         """
-        Execute a query if it's smaller than a certain number of gigabytes
+        Execute a query iff it's smaller than a certain number of gigabytes
         """
         query_size = self.estimate_query_size(query)
         if query_size <= max_gb_scanned:
