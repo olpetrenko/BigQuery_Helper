@@ -19,11 +19,11 @@ class BigQueryHelper(object):
 
     BYTES_PER_GB = 2**30
 
-    def __init__(self, active_project, dataset_name, credentials):
+    def __init__(self, active_project, dataset_name):
         self.project_name = active_project
         self.dataset_name = dataset_name
         self.credentials = credentials
-        self.client = bigquery.Client.from_service_account_json(self.credentials)
+        self.client = bigquery.Client()
         self.__dataset_ref = self.client.dataset(self.dataset_name, project=self.project_name)
         self.dataset = None
         self.tables = dict()  # {table name (str): table object}
@@ -105,3 +105,22 @@ class BigQueryHelper(object):
         results = [x for x in results]
         return pd.DataFrame(
             data=[list(x.values()) for x in results], columns=list(results[0].keys()))
+ 
+
+class BigQueryHelperSecure(BigQueryHelper):
+    """
+    HelperSecure class is inherited from Helper class. It has additional positional 
+    argument - credentials. You need to put the path to .json security file.
+    """
+
+    BYTES_PER_GB = 2**30
+
+    def __init__(self, active_project, dataset_name, credentials):
+        self.project_name = active_project
+        self.dataset_name = dataset_name
+        self.credentials = credentials
+        self.client = bigquery.Client.from_service_account_json(self.credentials)
+        self.__dataset_ref = self.client.dataset(self.dataset_name, project=self.project_name)
+        self.dataset = None
+        self.tables = dict()  # {table name (str): table object}
+        self.__table_refs = dict()  # {table name (str): table reference}
