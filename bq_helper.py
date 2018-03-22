@@ -19,10 +19,11 @@ class BigQueryHelper(object):
 
     BYTES_PER_GB = 2**30
 
-    def __init__(self, active_project, dataset_name):
+    def __init__(self, active_project, dataset_name, credentials):
         self.project_name = active_project
         self.dataset_name = dataset_name
-        self.client = bigquery.Client()
+        self.credentials = credentials
+        self.client = bigquery.Client.from_service_account_json(self.credentials)
         self.__dataset_ref = self.client.dataset(self.dataset_name, project=self.project_name)
         self.dataset = None
         self.tables = dict()  # {table name (str): table object}
